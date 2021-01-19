@@ -28,9 +28,8 @@ fn run(
         let arg = &args[0];
         *output.borrow_mut() += &format!("{}\n", arg);
 
-        match report_output.upgrade() {
-            Some(report_output) => report_output(output.borrow().as_str()),
-            None => {}
+        if let Some(report_output) = report_output.upgrade() {
+            report_output(output.borrow().as_str())
         }
         Value::Bool(true)
     }));
