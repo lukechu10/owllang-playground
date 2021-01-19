@@ -7,7 +7,7 @@ use ella_passes::resolve::Resolver;
 use ella_value::BuiltinVars;
 use ella_value::Value;
 use ella_vm::codegen::Codegen;
-use ella_vm::vm::Vm;
+use ella_vm::vm::{InterpretResult, Vm};
 
 use enclose::enc;
 use log::*;
@@ -63,7 +63,10 @@ fn run(
 
         let chunk = codegen.into_inner_chunk();
         let result = vm.interpret(chunk);
-        debug!("{:?}", result);
+        
+        if result != InterpretResult::Ok {
+            report_errors(format!("{:?}", result));
+        }
     } else {
         let errors_string = format!("{}", source);
         report_errors(errors_string);
