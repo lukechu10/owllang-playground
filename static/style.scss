@@ -17,19 +17,23 @@ main {
   flex-direction: column;
   height: 100%;
 
-  & > button {
-    flex-grow: 0;
-  }
-
-  & > div.columns {
+  & > div.input-area {
     flex-grow: 1;
     margin-bottom: 0 !important; // prevent overflow
+
+    & .control {
+      height: 100%;
+    }
   }
+}
+
+.header {
+  font-weight: bold;
 }
 
 textarea.textarea {
   font-family: monospace;
-  
+
   resize: none;
   height: 100%;
   max-height: none !important;

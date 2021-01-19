@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::Duration;
 
 use ella_parser::parser::Parser;
 use ella_passes::resolve::Resolver;
@@ -11,6 +12,7 @@ use ella_vm::vm::Vm;
 use enclose::enc;
 use log::*;
 use yew::prelude::*;
+use yew::services::TimeoutService;
 use yew_functional::*;
 
 fn run(
@@ -74,6 +76,8 @@ pub fn app() -> Html {
 
     let (source, set_source) = use_state(|| "".to_string());
     let (output, set_output) = use_state(|| "".to_string());
+    let (is_loading, set_is_loading) = use_state(|| false);
+    let timeout_handle = use_ref(|| None);
 
     let report_output = Rc::new(enc!((set_output) move |new_output: &str| {
         set_output(new_output.to_string());
@@ -83,32 +87,53 @@ pub fn app() -> Html {
         set_output(errors_string);
     }));
 
-    let handle_run = Callback::from(enc!((source, report_output, report_errors, set_output) move |_| {
-        set_output("".to_string());
-        run(Rc::clone(&source), Rc::clone(&report_output), Rc::clone(&report_errors));
-    }));
+    let handle_run = Callback::from(
+        enc!((source, report_output, report_errors, set_output, set_is_loading, timeout_handle) move |_| {
+            set_output("".to_string());
+            set_is_loading(true);
+
+            let handle = TimeoutService::spawn(Duration::from_secs(0), Callback::from(enc!((source, report_output, report_errors, set_is_loading) move |_| {
+                run(Rc::clone(&source), Rc::clone(&report_output), Rc::clone(&report_errors));
+                set_is_loading(false);
+            })));
+            *timeout_handle.borrow_mut() = Some(handle);
+        }),
+    );
 
     html! {
         <main class="m-3">
-            <button class="button mb-3" onclick=handle_run>{ "Run" }</button>
-
             <div class="columns">
+                <div class="column header">{ "Ellalang Playground" }</div>
                 <div class="column">
-                    <textarea
-                        class="textarea"
-                        placeholder="Source code here..."
-                        spellcheck=false
-                        oninput=Callback::from(enc!((set_source) move |ev: InputData| set_source(ev.value)))
-                    />
+                    <button
+                        class=format!("button is-primary {}", if *is_loading { "is-loading" } else { "" })
+                        disabled=*is_loading
+                        onclick=handle_run
+                    >{ "Run" }</button>
+                </div>
+            </div>
+
+            <div class="columns input-area">
+                <div class="column">
+                    <div class="control">
+                        <textarea
+                            class="textarea"
+                            placeholder="Source code here..."
+                            spellcheck=false
+                            oninput=Callback::from(enc!((set_source) move |ev: InputData| set_source(ev.value)))
+                        />
+                    </div>
                 </div>
 
                 <div class="column">
-                    <textarea
-                        class="textarea column"
-                        value=output
-                        readonly=true
-                        spellcheck=false
-                    />
+                    <div class=format!("control {}", if *is_loading { "is-loading" } else { "" })>
+                        <textarea
+                            class="textarea column"
+                            value=output
+                            readonly=true
+                            spellcheck=false
+                        />
+                    </div>
                 </div>
             </div>
         </main>
