@@ -1,0 +1,34 @@
+[package]
+authors = ["Luke Chu <37006668+lukechu10@users.noreply.github.com>"]
+edition = "2018"
+name = "ellalang-demo"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ella = {git = "https://github.com/lukechu10/ellalang", rev = "3e94728"}
+ella-parser = {git = "https://github.com/lukechu10/ellalang", rev = "3e94728"}
+ella-passes = {git = "https://github.com/lukechu10/ellalang", rev = "3e94728"}
+ella-source = {git = "https://github.com/lukechu10/ellalang", rev = "3e94728"}
+ella-value = {git = "https://github.com/lukechu10/ellalang", rev = "3e94728"}
+ella-vm = {git = "https://github.com/lukechu10/ellalang", rev = "3e94728"}
+enclose = "1.1.8"
+log = "0.4"
+serde = "1"
+serde_derive = "1"
+wasm-bindgen = "0.2.58"
+wasm-logger = "0.2"
+wee_alloc = {version = "0.4.4", optional = true}
+yew = {git = "https://github.com/yewstack/yew", rev = "389a6c4"}
+yew-functional = {git = "https://github.com/yewstack/yew", rev = "389a6c4"}
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[dependencies.web-sys]
+features = [
+  'KeyboardEvent',
+]
+version = "0.3.4"
