@@ -11,9 +11,20 @@ use ella_vm::vm::{InterpretResult, Vm};
 
 use enclose::enc;
 use log::*;
+use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 use yew::services::TimeoutService;
 use yew_functional::*;
+
+#[wasm_bindgen(inline_js = "export function js_clock(a, b) { return new Date().valueOf() / 1000; }")]
+extern "C" {
+    fn js_clock() -> f64;
+}
+
+fn native_clock(_args: &mut [Value]) -> Value {
+    let time = js_clock();
+    Value::Number(time)
+}
 
 fn run(
     source: Rc<String>,
@@ -36,6 +47,7 @@ fn run(
         Value::Bool(true)
     }));
     builtin_vars.add_native_fn("println", native_println, 1);
+    builtin_vars.add_native_fn("clock", &native_clock, 0);
 
     let dummy_source = "".into();
     let mut resolver = Resolver::new(&dummy_source);
@@ -63,7 +75,7 @@ fn run(
 
         let chunk = codegen.into_inner_chunk();
         let result = vm.interpret(chunk);
-        
+
         if result != InterpretResult::Ok {
             report_errors(format!("{:?}", result));
         }

@@ -19,7 +19,7 @@ enclose = "1.1.8"
 log = "0.4"
 serde = "1"
 serde_derive = "1"
-wasm-bindgen = "0.2.58"
+wasm-bindgen = "0.2.69"
 wasm-logger = "0.2"
 wee_alloc = {version = "0.4.4", optional = true}
 yew = {git = "https://github.com/yewstack/yew", rev = "389a6c4"}
