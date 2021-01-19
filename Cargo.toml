@@ -1,5 +1,6 @@
 [package]
 authors = ["Luke Chu <37006668+lukechu10@users.noreply.github.com>"]
+description = "A interactive online playground for lukechu10/ellalang"
 edition = "2018"
 name = "ellalang-demo"
 version = "0.1.0"
