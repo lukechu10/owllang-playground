@@ -31,21 +31,23 @@ fn run(
     report_output: Rc<impl Fn(&str) + 'static>,
     report_errors: Rc<impl Fn(String)>,
 ) {
+    let start = js_clock();
+    
     let source = source.as_str().into();
     let mut builtin_vars = BuiltinVars::new();
 
+    let output = Rc::new(RefCell::new(String::new()));
     let report_output = Rc::downgrade(&report_output);
 
-    let output = Rc::new(RefCell::new(String::new()));
-    let native_println = Box::leak(Box::new(move |args: &mut [Value]| {
+    let native_println = Box::leak(Box::new(enc!((output, report_output) move |args: &mut [Value]| {
         let arg = &args[0];
-        *output.borrow_mut() += &format!("{}\n", arg);
+        *output.borrow_mut() += &format!("[STDOUT] {}\n", arg);
 
         if let Some(report_output) = report_output.upgrade() {
             report_output(output.borrow().as_str())
         }
         Value::Bool(true)
-    }));
+    })));
     builtin_vars.add_native_fn("println", native_println, 1);
     builtin_vars.add_native_fn("clock", &native_clock, 0);
 
@@ -78,6 +80,12 @@ fn run(
 
         if result != InterpretResult::Ok {
             report_errors(format!("{:?}", result));
+        }
+
+        let end = js_clock();
+        *output.borrow_mut() += &format!("[INFO] Execution finished in {:.3} seconds\n", end - start);
+        if let Some(report_output) = report_output.upgrade() {
+            report_output(output.borrow().as_str())
         }
     } else {
         let errors_string = format!("{}", source);
