@@ -89,20 +89,28 @@ pub fn app() -> Html {
     }));
 
     html! {
-        <main>
-            <button onclick=handle_run>{ "Run" }</button>
+        <main class="m-3">
+            <button class="button mb-3" onclick=handle_run>{ "Run" }</button>
 
-            <textarea
-                class="input"
-                placeholder="Source code here..."
-                oninput=Callback::from(enc!((set_source) move |ev: InputData| set_source(ev.value)))
-            />
+            <div class="columns">
+                <div class="column">
+                    <textarea
+                        class="textarea"
+                        placeholder="Source code here..."
+                        spellcheck=false
+                        oninput=Callback::from(enc!((set_source) move |ev: InputData| set_source(ev.value)))
+                    />
+                </div>
 
-            <textarea
-                class="output"
-                value=output
-                readonly=true
-            />
+                <div class="column">
+                    <textarea
+                        class="textarea column"
+                        value=output
+                        readonly=true
+                        spellcheck=false
+                    />
+                </div>
+            </div>
         </main>
     }
 }
