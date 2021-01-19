@@ -77,20 +77,25 @@ pub fn app() -> Html {
     let (source, set_source) = use_state(|| "".to_string());
     let (output, set_output) = use_state(|| "".to_string());
     let (is_loading, set_is_loading) = use_state(|| false);
+    let (is_error, set_is_error) = use_state(|| false);
     let timeout_handle = use_ref(|| None);
 
     let report_output = Rc::new(enc!((set_output) move |new_output: &str| {
         set_output(new_output.to_string());
     }));
 
-    let report_errors = Rc::new(enc!((set_output) move |errors_string: String| {
-        set_output(errors_string);
-    }));
+    let report_errors = Rc::new(
+        enc!((set_output, set_is_error) move |errors_string: String| {
+            set_output(errors_string);
+            set_is_error(true);
+        }),
+    );
 
     let handle_run = Callback::from(
-        enc!((source, report_output, report_errors, set_output, set_is_loading, timeout_handle) move |_| {
+        enc!((source, report_output, report_errors, set_output, set_is_loading, set_is_error, timeout_handle) move |_| {
             set_output("".to_string());
             set_is_loading(true);
+            set_is_error(false);
 
             let handle = TimeoutService::spawn(Duration::from_secs(0), Callback::from(enc!((source, report_output, report_errors, set_is_loading) move |_| {
                 run(Rc::clone(&source), Rc::clone(&report_output), Rc::clone(&report_errors));
@@ -128,7 +133,7 @@ pub fn app() -> Html {
                 <div class="column">
                     <div class=format!("control {}", if *is_loading { "is-loading" } else { "" })>
                         <textarea
-                            class="textarea column"
+                            class=format!("textarea column {}", if *is_error { "is-danger" } else { "" })
                             value=output
                             readonly=true
                             spellcheck=false
