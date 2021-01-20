@@ -12,11 +12,18 @@ use ella_vm::vm::{InterpretResult, Vm};
 use enclose::enc;
 use log::*;
 use wasm_bindgen::prelude::*;
+use yew::format::Nothing;
 use yew::prelude::*;
-use yew::services::TimeoutService;
+use yew::services::fetch::{Request, Response};
+use yew::services::{FetchService, TimeoutService};
+use yew::utils::window;
 use yew_functional::*;
 
-#[wasm_bindgen(inline_js = "export function js_clock(a, b) { return new Date().valueOf() / 1000; }")]
+static EXAMPLES: &[&str] = &["hello-world", "fibonacci", "speed-test"];
+
+#[wasm_bindgen(
+    inline_js = "export function js_clock(a, b) { return new Date().valueOf() / 1000; }"
+)]
 extern "C" {
     fn js_clock() -> f64;
 }
@@ -32,22 +39,24 @@ fn run(
     report_errors: Rc<impl Fn(String)>,
 ) {
     let start = js_clock();
-    
+
     let source = source.as_str().into();
     let mut builtin_vars = BuiltinVars::new();
 
     let output = Rc::new(RefCell::new(String::new()));
     let report_output = Rc::downgrade(&report_output);
 
-    let native_println = Box::leak(Box::new(enc!((output, report_output) move |args: &mut [Value]| {
-        let arg = &args[0];
-        *output.borrow_mut() += &format!("[STDOUT] {}\n", arg);
+    let native_println = Box::leak(Box::new(
+        enc!((output, report_output) move |args: &mut [Value]| {
+            let arg = &args[0];
+            *output.borrow_mut() += &format!("[STDOUT] {}\n", arg);
 
-        if let Some(report_output) = report_output.upgrade() {
-            report_output(output.borrow().as_str())
-        }
-        Value::Bool(true)
-    })));
+            if let Some(report_output) = report_output.upgrade() {
+                report_output(output.borrow().as_str())
+            }
+            Value::Bool(true)
+        }),
+    ));
     builtin_vars.add_native_fn("println", native_println, 1);
     builtin_vars.add_native_fn("clock", &native_clock, 0);
 
@@ -83,7 +92,8 @@ fn run(
         }
 
         let end = js_clock();
-        *output.borrow_mut() += &format!("[INFO] Execution finished in {:.3} seconds\n", end - start);
+        *output.borrow_mut() +=
+            &format!("[INFO] Execution finished in {:.3} seconds\n", end - start);
         if let Some(report_output) = report_output.upgrade() {
             report_output(output.borrow().as_str())
         }
@@ -95,13 +105,15 @@ fn run(
 
 #[function_component(App)]
 pub fn app() -> Html {
-    debug!("rendered");
+    info!("rendered");
 
     let (source, set_source) = use_state(|| "".to_string());
     let (output, set_output) = use_state(|| "".to_string());
     let (is_loading, set_is_loading) = use_state(|| false);
     let (is_error, set_is_error) = use_state(|| false);
     let timeout_handle = use_ref(|| None);
+    let fetch_example_task_handle = use_ref(|| None);
+    let (examples_dropdown_open, set_examples_dropdown_open) = use_state(|| false);
 
     let report_output = Rc::new(enc!((set_output) move |new_output: &str| {
         set_output(new_output.to_string());
@@ -128,16 +140,68 @@ pub fn app() -> Html {
         }),
     );
 
+    let close_dropdown = Callback::from(enc!((set_examples_dropdown_open) move |_| {
+        set_examples_dropdown_open(false);
+    }));
+
+    let toggle_dropdown = Callback::from(
+        enc!((examples_dropdown_open, set_examples_dropdown_open) move |event: MouseEvent| {
+            event.stop_immediate_propagation();
+            set_examples_dropdown_open(!*examples_dropdown_open);
+        }),
+    );
+
+    let load_example = Rc::new(Callback::from(enc!(
+        (set_source, fetch_example_task_handle) move |name| {
+            info!("loading example {}", name);
+            let location = window().location();
+            let url = format!("{}{}examples/{}.ella", location.origin().unwrap(), location.pathname().unwrap(), name);
+            let req = Request::get(url)
+                .body(Nothing)
+                .unwrap();
+
+            let callback = Callback::from(enc!((set_source) move |response: Response<anyhow::Result<String>>| {
+                if let (meta, Ok(response)) = response.into_parts() {
+                    if meta.status.is_success() {
+                        set_source(response);
+                    } else {
+                        set_source("Error, could not fetch example.".to_string());
+                    }
+                }
+            }));
+            let task = FetchService::fetch(req, callback);
+            *fetch_example_task_handle.borrow_mut() = Some(task);
+        }
+    )));
+
     html! {
-        <main class="m-3">
+        <main class="m-3" onclick=close_dropdown>
             <div class="columns">
                 <div class="column header">{ "Ellalang Playground" }</div>
+
                 <div class="column">
                     <button
                         class=format!("button is-primary {}", if *is_loading { "is-loading" } else { "" })
                         disabled=*is_loading
                         onclick=handle_run
                     >{ "Run" }</button>
+                </div>
+
+                <div class="column">
+                    <div class=format!("dropdown {}", if *examples_dropdown_open { "is-active" } else { "" })>
+                        <button class="button dropdown-trigger" onclick=toggle_dropdown>{ "Example scripts" }</button>
+                        <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                            <div class="dropdown-content">
+                                { for EXAMPLES.iter().map(|name| html! {
+                                    <a
+                                        href="#"
+                                        class="dropdown-item"
+                                        onclick=Callback::from(enc!((load_example) move |_| load_example.emit(name)))
+                                    >{ name }</a>
+                                })}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -148,6 +212,7 @@ pub fn app() -> Html {
                             class="textarea"
                             placeholder="Source code here..."
                             spellcheck=false
+                            value=source
                             oninput=Callback::from(enc!((set_source) move |ev: InputData| set_source(ev.value)))
                         />
                     </div>
@@ -157,9 +222,9 @@ pub fn app() -> Html {
                     <div class=format!("control {}", if *is_loading { "is-loading" } else { "" })>
                         <textarea
                             class=format!("textarea column {}", if *is_error { "is-danger" } else { "" })
-                            value=output
                             readonly=true
                             spellcheck=false
+                            value=output
                         />
                     </div>
                 </div>
