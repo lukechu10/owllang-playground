@@ -18,8 +18,7 @@ ella-value = {git = "https://github.com/lukechu10/ellalang", rev = "0f2293e"}
 ella-vm = {git = "https://github.com/lukechu10/ellalang", rev = "0f2293e"}
 enclose = "1.1.8"
 log = "0.4"
-serde = "1"
-serde_derive = "1"
+serde = {version = "1", features = ["derive"]}
 wasm-bindgen = "0.2.69"
 wasm-logger = "0.2"
 wee_alloc = {version = "0.4.4", optional = true}

@@ -1,5 +1,5 @@
 import "./static/style.scss";
 
-import("./pkg").then(module => {
-  module.run_app();
+import("./pkg/ellalang").then(module => {
+    module.run_app();
 });

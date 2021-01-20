@@ -1,6 +1,7 @@
 #![recursion_limit = "512"]
 
-mod app;
+pub mod app;
+pub mod runner;
 
 use wasm_bindgen::prelude::*;
 

@@ -14,7 +14,6 @@ module.exports = (env, argv) => {
     output: {
       path: distPath,
       filename: "ellalang.js",
-      webassemblyModuleFilename: "ellalang.wasm"
     },
     module: {
       rules: [
@@ -37,7 +36,9 @@ module.exports = (env, argv) => {
       new WasmPackPlugin({
         crateDirectory: ".",
         extraArgs: "--no-typescript",
-      })
+        outDir: "pkg/",
+        outName: "ellalang",
+      }),
     ],
     experiments: {
       syncWebAssembly: true,
