@@ -2,6 +2,7 @@
 
 use std::rc::Rc;
 
+use ella::builtin_functions;
 use ella_parser::parser::Parser;
 use ella_passes::resolve::Resolver;
 use ella_value::BuiltinVars;
@@ -51,7 +52,10 @@ pub fn run(
         }),
     ));
     builtin_vars.add_native_fn("println", native_println, 1);
+    builtin_vars.add_native_fn("is_nan", &builtin_functions::is_nan, 1);
+    builtin_vars.add_native_fn("parse_number", &builtin_functions::parse_number, 1);
     builtin_vars.add_native_fn("clock", &native_clock, 0);
+    builtin_vars.add_native_fn("str", &builtin_functions::str, 1);
 
     let dummy_source = "".into();
     let mut resolver = Resolver::new(&dummy_source);
