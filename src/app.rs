@@ -14,7 +14,7 @@ use yew_functional::*;
 
 use crate::runner;
 
-static EXAMPLES: &[&str] = &["hello-world", "fibonacci", "speed-test"];
+static EXAMPLES: &[&str] = &["hello-world", "factorial", "fibonacci", "speed-test"];
 
 #[function_component(App)]
 pub fn app() -> Html {
