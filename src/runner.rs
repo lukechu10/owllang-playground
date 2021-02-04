@@ -5,8 +5,10 @@ use std::rc::Rc;
 use ella::builtin_functions;
 use ella_parser::parser::Parser;
 use ella_passes::resolve::Resolver;
-use ella_value::BuiltinVars;
+use ella_passes::type_checker::TypeChecker;
+use ella_source::Source;
 use ella_value::Value;
+use ella_value::{BuiltinType, BuiltinVars, UniqueType};
 use ella_vm::codegen::Codegen;
 use ella_vm::vm::{InterpretResult, Vm};
 use enclose::enc;
@@ -51,33 +53,86 @@ pub fn run(
             Value::Bool(true)
         }),
     ));
-    builtin_vars.add_native_fn("println", native_println, 1);
-    builtin_vars.add_native_fn("is_nan", &builtin_functions::is_nan, 1);
-    builtin_vars.add_native_fn("parse_number", &builtin_functions::parse_number, 1);
-    builtin_vars.add_native_fn("clock", &native_clock, 0);
-    builtin_vars.add_native_fn("str", &builtin_functions::str, 1);
+    builtin_vars.add_native_fn(
+        "println",
+        native_println,
+        1,
+        BuiltinType::Fn {
+            params: vec![UniqueType::Any],
+            ret: Box::new(BuiltinType::Bool.into()),
+        }
+        .into(),
+    );
+    builtin_vars.add_native_fn(
+        "is_nan",
+        &builtin_functions::is_nan,
+        1,
+        BuiltinType::Fn {
+            params: vec![BuiltinType::Number.into()],
+            ret: Box::new(BuiltinType::Bool.into()),
+        }
+        .into(),
+    );
+    builtin_vars.add_native_fn(
+        "parse_number",
+        &builtin_functions::parse_number,
+        1,
+        BuiltinType::Fn {
+            params: vec![UniqueType::Any],
+            ret: Box::new(BuiltinType::Number.into()),
+        }
+        .into(),
+    );
+    builtin_vars.add_native_fn(
+        "clock",
+        &native_clock,
+        0,
+        BuiltinType::Fn {
+            params: Vec::new(),
+            ret: Box::new(BuiltinType::Number.into()),
+        }
+        .into(),
+    );
+    builtin_vars.add_native_fn(
+        "str",
+        &builtin_functions::str,
+        1,
+        BuiltinType::Fn {
+            params: vec![UniqueType::Any],
+            ret: Box::new(BuiltinType::String.into()),
+        }
+        .into(),
+    );
 
-    let dummy_source = "".into();
-    let mut resolver = Resolver::new(&dummy_source);
+    let dummy_source: Source = "".into();
+    let mut resolver = Resolver::new(dummy_source.clone());
     resolver.resolve_builtin_vars(&builtin_vars);
-    let mut resolve_result = resolver.resolve_result();
-    let accessible_symbols = resolver.accessible_symbols();
+    let mut resolve_result = resolver.into_resolve_result();
+
+    let mut type_checker = TypeChecker::new(&resolve_result, dummy_source.clone());
+    type_checker.type_check_builtin_vars(&builtin_vars);
+    let mut type_check_result = type_checker.into_type_check_result();
 
     let mut vm = Vm::new(&builtin_vars);
-    let mut codegen = Codegen::new("<global>".to_string(), resolve_result, &source);
+    let mut codegen = Codegen::new("<global>".to_string(), &resolve_result, &source);
     codegen.codegen_builtin_vars(&builtin_vars);
     vm.interpret(codegen.into_inner_chunk()); // load built in functions into memory
 
     let mut parser = Parser::new(&source);
     let ast = parser.parse_program();
 
-    let mut resolver =
-        Resolver::new_with_existing_accessible_symbols(&source, accessible_symbols.clone());
+    let mut resolver = Resolver::new_with_existing_resolve_result(source.clone(), resolve_result);
     resolver.resolve_top_level(&ast);
-    resolve_result = resolver.resolve_result();
+    resolve_result = resolver.into_resolve_result();
+
+    let mut type_checker =
+        TypeChecker::new_with_type_check_result(&resolve_result, source.clone(), type_check_result);
+    type_checker.type_check_global(&ast);
+    type_check_result = type_checker.into_type_check_result();
+    let _ = type_check_result;
 
     if source.has_no_errors() {
-        let mut codegen = Codegen::new("<global>".to_string(), resolve_result, &source);
+        let mut codegen = Codegen::new("<global>".to_string(), &resolve_result, &source);
 
         codegen.codegen_function(&ast);
 

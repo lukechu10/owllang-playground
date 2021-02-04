@@ -10,12 +10,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 anyhow = "1.0.38"
-ella = {git = "https://github.com/lukechu10/ellalang", rev = "3d84086"}
-ella-parser = {git = "https://github.com/lukechu10/ellalang", rev = "3d84086"}
-ella-passes = {git = "https://github.com/lukechu10/ellalang", rev = "3d84086"}
-ella-source = {git = "https://github.com/lukechu10/ellalang", rev = "3d84086"}
-ella-value = {git = "https://github.com/lukechu10/ellalang", rev = "3d84086"}
-ella-vm = {git = "https://github.com/lukechu10/ellalang", rev = "3d84086"}
+ella = {git = "https://github.com/lukechu10/ellalang", rev = "4548794"}
+ella-parser = {git = "https://github.com/lukechu10/ellalang", rev = "4548794"}
+ella-passes = {git = "https://github.com/lukechu10/ellalang", rev = "4548794"}
+ella-source = {git = "https://github.com/lukechu10/ellalang", rev = "4548794"}
+ella-value = {git = "https://github.com/lukechu10/ellalang", rev = "4548794"}
+ella-vm = {git = "https://github.com/lukechu10/ellalang", rev = "4548794"}
 enclose = "1.1.8"
 log = "0.4"
 serde = {version = "1", features = ["derive"]}
