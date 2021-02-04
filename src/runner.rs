@@ -139,8 +139,11 @@ pub fn run(
         let chunk = codegen.into_inner_chunk();
         let result = vm.interpret(chunk);
 
-        if result != InterpretResult::Ok {
-            report_errors(format!("{:?}", result));
+        if let InterpretResult::RuntimeError { message, line } = result {
+            *output.borrow_mut() += &format!("runtime error: {}\n   --> repl:{}\n", message, line);
+            if let Some(report_output) = report_output.upgrade() {
+                report_output(output.borrow().to_string());
+            }
         }
 
         let end = js_clock();
