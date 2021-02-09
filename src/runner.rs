@@ -114,7 +114,7 @@ pub fn run(
     let mut type_check_result = type_checker.into_type_check_result();
 
     let mut vm = Vm::new(&builtin_vars);
-    let mut codegen = Codegen::new("<global>".to_string(), &resolve_result, &source);
+    let mut codegen = Codegen::new("<global>".to_string(), &resolve_result, &type_check_result, &source);
     codegen.codegen_builtin_vars(&builtin_vars);
     vm.interpret(codegen.into_inner_chunk()); // load built in functions into memory
 
@@ -132,7 +132,7 @@ pub fn run(
     let _ = type_check_result;
 
     if source.has_no_errors() {
-        let mut codegen = Codegen::new("<global>".to_string(), &resolve_result, &source);
+        let mut codegen = Codegen::new("<global>".to_string(), &resolve_result, &type_check_result, &source);
 
         codegen.codegen_function(&ast);
 
