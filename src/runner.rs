@@ -2,15 +2,15 @@
 
 use std::rc::Rc;
 
-use ella::builtin_functions;
-use ella_parser::parser::Parser;
-use ella_passes::resolve::Resolver;
-use ella_passes::type_checker::TypeChecker;
-use ella_source::Source;
-use ella_value::Value;
-use ella_value::{BuiltinType, BuiltinVars, UniqueType};
-use ella_vm::codegen::Codegen;
-use ella_vm::vm::{InterpretResult, Vm};
+use owl::builtin_functions;
+use owl_parser::parser::Parser;
+use owl_passes::resolve::Resolver;
+use owl_passes::type_checker::TypeChecker;
+use owl_source::Source;
+use owl_value::Value;
+use owl_value::{BuiltinType, BuiltinVars, UniqueType};
+use owl_vm::codegen::Codegen;
+use owl_vm::vm::{InterpretResult, Vm};
 use enclose::enc;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;

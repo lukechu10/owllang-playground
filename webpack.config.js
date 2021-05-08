@@ -13,7 +13,7 @@ module.exports = (env, argv) => {
     entry: "./bootstrap.js",
     output: {
       path: distPath,
-      filename: "ellalang.js",
+      filename: "owllang.js",
     },
     module: {
       rules: [
@@ -37,7 +37,7 @@ module.exports = (env, argv) => {
         crateDirectory: ".",
         extraArgs: "--no-typescript",
         outDir: "pkg/",
-        outName: "ellalang",
+        outName: "owllang",
       }),
     ],
     experiments: {

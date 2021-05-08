@@ -7,10 +7,10 @@ use runner::{RunResult, Runner};
 use yew::agent::Bridged;
 use yew::format::Nothing;
 use yew::prelude::*;
-use yew::services::fetch::{Request, Response};
-use yew::services::{FetchService, TimeoutService};
 use yew::utils::window;
 use yew_functional::*;
+use yew_services::fetch::{Request, Response};
+use yew_services::{FetchService, TimeoutService};
 
 use crate::runner;
 
@@ -20,24 +20,22 @@ static EXAMPLES: &[&str] = &["hello-world", "factorial", "fibonacci", "speed-tes
 pub fn app() -> Html {
     info!("rendered");
 
-    let (source, set_source) = use_state(|| "".to_string());
-    let (output, set_output) = use_state(|| "".to_string());
-    let (is_loading, set_is_loading) = use_state(|| false);
-    let (is_error, set_is_error) = use_state(|| false);
+    let source = use_state(|| "".to_string());
+    let output = use_state(|| "".to_string());
+    let is_loading = use_state(|| false);
+    let is_error = use_state(|| false);
     let timeout_handle = use_ref(|| None);
     let fetch_example_task_handle = use_ref(|| None);
-    let (examples_dropdown_open, set_examples_dropdown_open) = use_state(|| false);
+    let examples_dropdown_open = use_state(|| false);
 
-    let report_output = Rc::new(enc!((set_output) move |new_output: String| {
-        set_output(new_output);
+    let report_output = Rc::new(enc!((output) move |new_output: String| {
+        output.set(new_output);
     }));
 
-    let report_errors = Rc::new(
-        enc!((set_output, set_is_error) move |errors_string: String| {
-            set_output(errors_string);
-            set_is_error(true);
-        }),
-    );
+    let report_errors = Rc::new(enc!((output, is_error) move |errors_string: String| {
+        output.set(errors_string);
+        is_error.set(true);
+    }));
 
     let callback = Callback::from(
         enc!((report_output, report_errors) move |result: RunResult| {
@@ -50,45 +48,46 @@ pub fn app() -> Html {
     let runner_handle = use_ref(|| Runner::bridge(callback));
 
     let handle_run = Callback::from(
-        enc!((source, set_output, set_is_loading, set_is_error, timeout_handle) move |_| {
-            set_output("".to_string());
-            set_is_loading(true);
-            set_is_error(false);
+        enc!((source, output, is_loading, is_error, timeout_handle) move |_| {
+            output.set("".to_string());
+            is_loading.set(true);
+            is_error.set(false);
 
-            let handle = TimeoutService::spawn(Duration::from_secs(0), Callback::from(enc!((source, runner_handle, set_is_loading) move |_| {
-                runner_handle.borrow_mut().send(runner::Request::ExecuteCode(source.to_string()));
-                set_is_loading(false);
-            })));
+            let handle = TimeoutService::spawn(
+                Duration::from_secs(0),
+                Callback::from(enc!((source, runner_handle, is_loading) move |_| {
+                    runner_handle.borrow_mut().send(runner::Request::ExecuteCode(source.to_string()));
+                    is_loading.set(false);
+                })),
+            );
             *timeout_handle.borrow_mut() = Some(handle);
         }),
     );
 
-    let close_dropdown = Callback::from(enc!((set_examples_dropdown_open) move |_| {
-        set_examples_dropdown_open(false);
+    let close_dropdown = Callback::from(enc!((examples_dropdown_open) move |_| {
+        examples_dropdown_open.set(false);
     }));
 
-    let toggle_dropdown = Callback::from(
-        enc!((examples_dropdown_open, set_examples_dropdown_open) move |event: MouseEvent| {
-            event.stop_immediate_propagation();
-            set_examples_dropdown_open(!*examples_dropdown_open);
-        }),
-    );
+    let toggle_dropdown = Callback::from(enc!((examples_dropdown_open) move |event: MouseEvent| {
+        event.stop_immediate_propagation();
+        examples_dropdown_open.set(!*examples_dropdown_open);
+    }));
 
     let load_example = Rc::new(Callback::from(enc!(
-        (set_source, fetch_example_task_handle) move |name| {
+        (source, fetch_example_task_handle) move |name| {
             info!("loading example {}", name);
             let location = window().location();
-            let url = format!("{}{}examples/{}.ella", location.origin().unwrap(), location.pathname().unwrap(), name);
+            let url = format!("{}{}examples/{}.hoot", location.origin().unwrap(), location.pathname().unwrap(), name);
             let req = Request::get(url)
                 .body(Nothing)
                 .unwrap();
 
-            let callback = Callback::from(enc!((set_source) move |response: Response<anyhow::Result<String>>| {
+            let callback = Callback::from(enc!((source) move |response: Response<anyhow::Result<String>>| {
                 if let (meta, Ok(response)) = response.into_parts() {
                     if meta.status.is_success() {
-                        set_source(response);
+                        source.set(response);
                     } else {
-                        set_source("Error, could not fetch example.".to_string());
+                        source.set("Error, could not fetch example.".to_string());
                     }
                 }
             }));
@@ -100,7 +99,7 @@ pub fn app() -> Html {
     html! {
         <main class="m-3" onclick=close_dropdown>
             <div class="columns">
-                <div class="column header">{ "Ellalang Playground" }</div>
+                <div class="column header">{ "owllang Playground" }</div>
 
                 <div class="column">
                     <button
@@ -135,8 +134,8 @@ pub fn app() -> Html {
                             class="textarea"
                             placeholder="Source code here..."
                             spellcheck=false
-                            value=source
-                            oninput=Callback::from(enc!((set_source) move |ev: InputData| set_source(ev.value)))
+                            value=*source
+                            oninput=Callback::from(enc!((source) move |ev: InputData| source.set(ev.value)))
                         />
                     </div>
                 </div>
@@ -147,7 +146,7 @@ pub fn app() -> Html {
                             class=format!("textarea column {}", if *is_error { "is-danger" } else { "" })
                             readonly=true
                             spellcheck=false
-                            value=output
+                            value=*output
                         />
                     </div>
                 </div>

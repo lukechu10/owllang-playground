@@ -1,0 +1,17 @@
+// Iteratively find fibonacci numbers
+
+let a = 1;
+let b = 1;
+
+let count = 0;
+let until = 100;
+
+while count < until {
+    count += 1;
+
+    println(a);
+
+    let tmp = a + b;
+    a = b;
+    b = tmp;
+}
