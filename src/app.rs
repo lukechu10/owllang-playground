@@ -126,7 +126,7 @@ pub fn app() -> Html {
                         <textarea
                             class="textarea"
                             placeholder="Source code here..."
-                            spellcheck="true"
+                            spellcheck="false"
                             value={(*source).clone()}
                             oninput={Callback::from(enc!((source) move |ev: InputData| source.set(ev.value)))}
                         />
@@ -138,7 +138,7 @@ pub fn app() -> Html {
                         <textarea
                             class={format!("textarea column {}", if *is_error { "is-danger" } else { "" })}
                             readonly=true
-                            spellcheck="true"
+                            spellcheck="false"
                             value={(*output).clone()}
                         />
                     </div>
