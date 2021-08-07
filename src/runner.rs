@@ -15,7 +15,7 @@ use enclose::enc;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
-use yew::worker::*;
+use yew_agent::{Agent, AgentLink, Context, HandlerId, Job};
 
 #[wasm_bindgen(
     inline_js = "export function js_clock(a, b) { return new Date().valueOf() / 1000; }"

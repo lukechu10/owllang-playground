@@ -1,20 +1,24 @@
 use std::rc::Rc;
-use std::time::Duration;
 
 use enclose::enc;
+use gloo::timers::callback::Timeout;
 use log::*;
+use reqwasm::http::Request;
 use runner::{RunResult, Runner};
-use yew::agent::Bridged;
-use yew::format::Nothing;
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
-use yew::utils::window;
-use yew_functional::*;
-use yew_services::fetch::{Request, Response};
-use yew_services::{FetchService, TimeoutService};
+use yew_agent::Bridged;
 
 use crate::runner;
 
 static EXAMPLES: &[&str] = &["hello-world", "factorial", "fibonacci", "speed-test"];
+
+#[function_component(Header)]
+fn header() -> Html {
+    html! {
+        <div class="column header">{ "owllang Playground" }</div>
+    }
+}
 
 #[function_component(App)]
 pub fn app() -> Html {
@@ -25,7 +29,6 @@ pub fn app() -> Html {
     let is_loading = use_state(|| false);
     let is_error = use_state(|| false);
     let timeout_handle = use_ref(|| None);
-    let fetch_example_task_handle = use_ref(|| None);
     let examples_dropdown_open = use_state(|| false);
 
     let report_output = Rc::new(enc!((output) move |new_output: String| {
@@ -53,12 +56,12 @@ pub fn app() -> Html {
             is_loading.set(true);
             is_error.set(false);
 
-            let handle = TimeoutService::spawn(
-                Duration::from_secs(0),
-                Callback::from(enc!((source, runner_handle, is_loading) move |_| {
+            let handle = Timeout::new(
+                0,
+                enc!((source, runner_handle, is_loading) move || {
                     runner_handle.borrow_mut().send(runner::Request::ExecuteCode(source.to_string()));
                     is_loading.set(false);
-                })),
+                }),
             );
             *timeout_handle.borrow_mut() = Some(handle);
         }),
@@ -74,51 +77,41 @@ pub fn app() -> Html {
     }));
 
     let load_example = Rc::new(Callback::from(enc!(
-        (source, fetch_example_task_handle) move |name| {
+        (source) move |name| {
             info!("loading example {}", name);
-            let location = window().location();
-            let url = format!("{}{}examples/{}.hoot", location.origin().unwrap(), location.pathname().unwrap(), name);
-            let req = Request::get(url)
-                .body(Nothing)
-                .unwrap();
-
-            let callback = Callback::from(enc!((source) move |response: Response<anyhow::Result<String>>| {
-                if let (meta, Ok(response)) = response.into_parts() {
-                    if meta.status.is_success() {
-                        source.set(response);
-                    } else {
-                        source.set("Error, could not fetch example.".to_string());
-                    }
+            spawn_local(enc!((source) async move {
+                let res = Request::get(&format!("examples/{}.hoot", name)).send().await.unwrap();
+                if res.status() == 200 {
+                    source.set(res.text().await.unwrap());
+                } else {
+                    source.set("Error, could not fetch example.".to_string());
                 }
             }));
-            let task = FetchService::fetch(req, callback);
-            *fetch_example_task_handle.borrow_mut() = Some(task);
         }
     )));
 
     html! {
-        <main class="m-3" onclick=close_dropdown>
+        <main class="m-3" onclick={close_dropdown}>
             <div class="columns">
-                <div class="column header">{ "owllang Playground" }</div>
-
+                <Header />
                 <div class="column">
                     <button
-                        class=format!("button is-primary {}", if *is_loading { "is-loading" } else { "" })
-                        disabled=*is_loading
-                        onclick=handle_run
+                        class={format!("button is-primary {}", if *is_loading { "is-loading" } else { "" })}
+                        disabled={*is_loading}
+                        onclick={handle_run}
                     >{ "Run" }</button>
                 </div>
 
                 <div class="column">
-                    <div class=format!("dropdown {}", if *examples_dropdown_open { "is-active" } else { "" })>
-                        <button class="button dropdown-trigger" onclick=toggle_dropdown>{ "Example scripts" }</button>
+                    <div class={format!("dropdown {}", if *examples_dropdown_open { "is-active" } else { "" })}>
+                        <button class="button dropdown-trigger" onclick={toggle_dropdown}>{ "Example scripts" }</button>
                         <div class="dropdown-menu" id="dropdown-menu" role="menu">
                             <div class="dropdown-content">
                                 { for EXAMPLES.iter().map(|name| html! {
                                     <a
                                         href="#"
                                         class="dropdown-item"
-                                        onclick=Callback::from(enc!((load_example) move |_| load_example.emit(name)))
+                                        onclick={Callback::from(enc!((load_example) move |_| load_example.emit(name)))}
                                     >{ name }</a>
                                 })}
                             </div>
@@ -133,20 +126,20 @@ pub fn app() -> Html {
                         <textarea
                             class="textarea"
                             placeholder="Source code here..."
-                            spellcheck=false
-                            value=*source
-                            oninput=Callback::from(enc!((source) move |ev: InputData| source.set(ev.value)))
+                            spellcheck="true"
+                            value={(*source).clone()}
+                            oninput={Callback::from(enc!((source) move |ev: InputData| source.set(ev.value)))}
                         />
                     </div>
                 </div>
 
                 <div class="column">
-                    <div class=format!("control {}", if *is_loading { "is-loading" } else { "" })>
+                    <div class={format!("control {}", if *is_loading { "is-loading" } else { "" })}>
                         <textarea
-                            class=format!("textarea column {}", if *is_error { "is-danger" } else { "" })
+                            class={format!("textarea column {}", if *is_error { "is-danger" } else { "" })}
                             readonly=true
-                            spellcheck=false
-                            value=*output
+                            spellcheck="true"
+                            value={(*output).clone()}
                         />
                     </div>
                 </div>
