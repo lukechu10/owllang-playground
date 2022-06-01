@@ -1,0 +1,42 @@
+@charset "utf-8";
+@import "~bulma/bulma";
+
+$background: #ffffff;
+
+html {
+  overflow-y: hidden;
+}
+
+body {
+  background: $background;
+  height: 100vh;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  & > div.input-area {
+    flex-grow: 1;
+    margin-bottom: 0 !important; // prevent overflow
+
+    & .control {
+      height: 100%;
+    }
+  }
+}
+
+.header {
+  font-weight: bold;
+}
+
+textarea.textarea {
+  font-family: monospace;
+
+  transition-duration: 200ms;
+
+  resize: none;
+  height: 100%;
+  max-height: none !important;
+}
